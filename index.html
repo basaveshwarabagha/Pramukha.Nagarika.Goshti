@@ -1,0 +1,249 @@
+<!DOCTYPE html>
+<html lang="mr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>RSS Portal – Pramukha Nagarika Goshti</title>
+  <link rel="stylesheet" href="css/style.css" />
+  <!-- SheetJS for Excel export -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+</head>
+<body>
+
+  <!-- ===== HEADER ===== -->
+  <header class="site-header">
+    <div class="header-inner">
+      <div class="logo-area">
+        <img class="logo-img" src="https://i.ibb.co/zTpCbdPd/download.png" alt="RSS Logo" />
+        <div class="org-text">
+          <h1>Rashtriya Swayamsevak Sangh</h1>
+          <p class="tagline">Samparkha Vibagha</p>
+        </div>
+      </div>
+      <nav class="top-nav">
+        <a href="#home" class="nav-link active" onclick="showSection('home')">🏠 Home</a>
+        <a href="#goshti" class="nav-link" onclick="showSection('goshti')">👥 Pramukha Nagarika Goshti</a>
+        <div class="admin-nav" id="adminNavArea">
+          <button class="btn-admin-login" id="adminLoginBtn" onclick="openLoginModal()">🔐 Admin Login</button>
+          <div class="admin-badge hidden" id="adminBadge">
+            <span class="admin-chip">🛡️ Admin</span>
+            <button class="btn-admin-logout" onclick="adminLogout()">Logout</button>
+          </div>
+        </div>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ===== HOME SECTION ===== -->
+  <section id="home" class="page-section active">
+    <div class="hero-banner">
+      <div class="hero-content">
+        <h2>Basaveshwara Bagha</h2>
+        <p class="hero-subtitle">Pramukha Nagarika Goshti</p>
+        <button class="btn btn-primary" onclick="showSection('goshti')">
+          👥 Open Pramukha Nagarika Goshti
+        </button>
+      </div>
+    </div>
+
+  </section>
+
+  <!-- ===== PRAMUKHA NAGARIKA GOSHTI SECTION ===== -->
+  <section id="goshti" class="page-section">
+    <div class="section-header">
+      <h2>👥 Pramukha Nagarika Goshti</h2>
+      <p class="section-sub">प्रमुख नागरिक गोष्टी – Manage community member records</p>
+    </div>
+
+    <!-- Action Bar -->
+    <div class="action-bar" id="actionBar">
+      <button class="btn btn-primary" id="addMemberBtn" onclick="openModal('add')">
+        ➕ Add New Member
+      </button>
+      <button class="btn btn-success" id="excelBtn" onclick="exportToExcel()" style="display:none;">
+        📥 Download Excel
+      </button>
+      <div class="admin-lock-msg" id="lockMsg">
+        🔐 <strong>Admin login required</strong> to download Excel
+      </div>
+      <div class="search-box" id="adminSearchBox">
+        <input type="text" id="searchInput" placeholder="🔍 Search by name, area, mobile…" oninput="filterTable()" />
+      </div>
+    </div>
+
+    <!-- Stats Bar -->
+    <div class="stats-bar" id="statsBar">
+      <div class="stat-item">
+        <span class="stat-num" id="totalCount">0</span>
+        <span class="stat-label">Total Members</span>
+      </div>
+    </div>
+
+    <!-- Non-admin Phone Lookup -->
+    <div class="phone-lookup" id="phoneLookup" style="display:none;">
+      <h3>📱 Look Up Member</h3>
+      <p>Enter your registered mobile number to view and update your record.</p>
+      <div class="phone-lookup-form">
+        <input type="tel" id="phoneSearchInput" placeholder="Enter 10-digit mobile number" maxlength="10" pattern="[0-9]{10}" />
+        <button class="btn btn-primary" onclick="lookupByPhone()">🔍 Search</button>
+      </div>
+
+      <div id="lookupResult" class="lookup-result hidden"></div>
+    </div>
+
+    <!-- Members Table (admin only) -->
+    <div class="table-wrapper" id="tableWrapper">
+      <table id="membersTable">
+        <thead id="tableHead"></thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+    </div>
+  </section>
+
+  <!-- ===== MODAL (Add / Edit) ===== -->
+  <div id="memberModal" class="modal-overlay" onclick="closeModalOnOverlay(event)">
+    <div class="modal-box">
+      <div class="modal-header">
+        <h3 id="modalTitle">Add New Member</h3>
+        <button class="modal-close" onclick="closeModal()">✕</button>
+      </div>
+
+      <form id="memberForm" onsubmit="saveMember(event)">
+        <input type="hidden" id="memberId" />
+
+        <div class="form-grid">
+          <!-- Row 1 -->
+          <div class="form-group form-group-toggle" id="formGroupFullName">
+            <label for="fullName">Full Name <span class="req">*</span></label>
+            <input type="text" id="fullName" placeholder="Enter full name" required />
+          </div>
+          <div class="form-group form-group-toggle" id="formGroupAge">
+            <label for="age">Age <span class="req">*</span></label>
+            <input type="number" id="age" min="1" max="120" placeholder="Age" required />
+          </div>
+
+          <!-- Row 2 -->
+          <div class="form-group form-group-toggle" id="formGroupMobile">
+            <label for="mobile">Mobile Number <span class="req">*</span></label>
+            <input type="tel" id="mobile" placeholder="10-digit mobile" maxlength="10" pattern="[0-9]{10}" required />
+          </div>
+          <div class="form-group form-group-toggle" id="formGroupDob">
+            <label for="dob">Date of Birth</label>
+            <input type="date" id="dob" />
+          </div>
+
+          <!-- Row 3 -->
+          <div class="form-group form-group-toggle" id="formGroupArea">
+            <label for="area">Nagara</label>
+            <select id="area">
+              <option value="">-- Select Nagara --</option>
+              <option value="Kamala Nagara">Kamala Nagara</option>
+              <option value="Basaveshwara Nagara">Basaveshwara Nagara</option>
+              <option value="Mahalakshmi Nagara">Mahalakshmi Nagara</option>
+              <option value="Nagpura Nagara">Nagpura Nagara</option>
+              <option value="Rajajinagara">Rajajinagara</option>
+            </select>
+          </div>
+          <div class="form-group form-group-toggle" id="formGroupOccupation">
+            <label for="occupation">Occupation</label>
+            <input type="text" id="occupation" placeholder="e.g. Farmer, Teacher, Business…" />
+          </div>
+
+          <!-- Row 4: Samparka Contact Info -->
+          <div class="form-group form-group-toggle" id="formGroupSamparkaGatanayak">
+            <label for="samparkaGatanayak">Samparka Gatanayak</label>
+            <input type="text" id="samparkaGatanayak" placeholder="Enter contact group leader name" />
+          </div>
+          <div class="form-group form-group-toggle" id="formGroupSamparkaRefrence">
+            <label for="samparkaRefrence">Samparka Refrence</label>
+            <input type="text" id="samparkaRefrence" placeholder="Enter reference details" />
+          </div>
+
+          <!-- Row 5: Status of Samparka (always visible & editable by everyone) -->
+          <div class="form-group">
+            <label for="samparkaStatus">Status of Samparka</label>
+            <select id="samparkaStatus">
+              <option value="">-- Select Status --</option>
+              <option value="Samparka not done">Samparka not done</option>
+              <option value="Samparka done">Samparka done</option>
+              <option value="Invitation given">Invitation given</option>
+              <option value="Follow up done">Follow up done</option>
+              <option value="Confirmed">Confirmed</option>
+              <option value="Not coming">Not coming</option>
+            </select>
+          </div>
+
+          <!-- Full-width address -->
+          <div class="form-group full-width form-group-toggle" id="formGroupAddress">
+            <label for="address">Full Address</label>
+            <textarea id="address" rows="2" placeholder="House No., Street, Village/City, Pincode"></textarea>
+          </div>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="saveBtn">💾 Save Member</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== DELETE CONFIRM DIALOG ===== -->
+  <div id="deleteDialog" class="modal-overlay" onclick="closeDeleteOnOverlay(event)">
+    <div class="confirm-box">
+      <div class="confirm-icon">⚠️</div>
+      <h3>Confirm Delete</h3>
+      <p>Are you sure you want to remove this member? This action cannot be undone.</p>
+      <div class="confirm-actions">
+        <button class="btn btn-secondary" onclick="closeDeleteDialog()">Cancel</button>
+        <button class="btn btn-danger" onclick="confirmDelete()">Delete</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- ===== ADMIN LOGIN MODAL ===== -->
+  <div id="loginModal" class="modal-overlay" onclick="closeLoginOnOverlay(event)">
+    <div class="modal-box login-box">
+      <div class="modal-header login-header">
+        <div class="login-logo">🛡️</div>
+        <div>
+          <h3>Admin Login</h3>
+          <p class="login-sub">Restricted access – authorised personnel only</p>
+        </div>
+        <button class="modal-close" onclick="closeLoginModal()">✕</button>
+      </div>
+
+      <form id="loginForm" onsubmit="doLogin(event)" autocomplete="off">
+        <div class="login-body">
+          <div class="form-group">
+            <label for="loginUser">Username <span class="req">*</span></label>
+            <input type="text" id="loginUser" placeholder="Enter admin username" required autocomplete="off" />
+          </div>
+          <div class="form-group">
+            <label for="loginPass">Password <span class="req">*</span></label>
+            <div class="pass-wrap">
+              <input type="password" id="loginPass" placeholder="Enter password" required autocomplete="off" />
+              <button type="button" class="toggle-pass" onclick="togglePassVis()" title="Show/Hide">👁</button>
+            </div>
+          </div>
+          <p class="login-error hidden" id="loginError">❌ Invalid username or password.</p>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn btn-secondary" onclick="closeLoginModal()">Cancel</button>
+          <button type="submit" class="btn btn-primary">🔓 Login</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- ===== TOAST NOTIFICATION ===== -->
+  <div id="toast" class="toast hidden"></div>
+
+  <!-- ===== FOOTER ===== -->
+  <footer class="site-footer">
+    <p>© 2026 Rashtriya Swayamsevak Sangh (RSS) &nbsp;|&nbsp; Pramukha Nagarika Goshti Portal</p>
+  </footer>
+
+  <script src="js/app.js"></script>
+</body>
+</html>
